@@ -1,0 +1,99 @@
+-- no inicio deste trabalho a BD estava a "ler" o campo "date como YYYY-MM-DD, 
+-- isto fazia com que as data ficassem ordenada por Dia e depois mes e ultimo ano. ano; 
+-- ou seja primeiro ordenado todos por dia...
+-- para resolver, experiment definir o tipo de data da BD com a expressão:
+set datestyle = ISO, DMY;
+
+-- Após alterei o 'data type' da coluna Date.
+alter table "CovidDeaths.csv" 
+alter date type date;
+
+select location, date, total_cases, new_cases, total_deaths, population
+from "CovidDeaths.csv" cdc 
+order by 1,2 
+
+-- First exploration, trying to understand the Total Cases VS Total Deaths, 
+-- simply understanding the % of Deaths and the likelihood of dying from this. 
+-- first globally 
+select location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 as Death_Percentage
+from "CovidDeaths.csv" cdc 
+order by 1,2
+
+-- Then in Portugal
+select location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 as Death_Percentage
+from "CovidDeaths.csv" cdc
+where location = 'Portugal'
+order by 1,2
+
+-- Then In states, using the like experession, since I am not sure how it is written
+select location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 as Death_Percentage
+from "CovidDeaths.csv" cdc
+where location like '%States%'
+order by 1,2
+
+--- Understand the percentagem of the Population that got covid
+
+select location, date, total_cases, population, (total_cases/population)*100 as Infected_Population
+from "CovidDeaths.csv" cdc 
+order by 1,2
+
+-- Understand the countries with the hightes infection rate
+select location, Max(total_cases) as Total_Pop_Infected, population, Max((total_cases/population)*100) as Infected_Population
+from "CovidDeaths.csv" cdc 
+Group by location, population
+order by Infected_Population desc
+
+-- Understanding the country  with biggest number of deaths from "CovidData"
+
+select location, Max(total_deaths) as death_count
+from "CovidDeaths.csv" cdc 
+where continent != '' and total_deaths is not null
+group by location 
+order by death_count desc
+
+-- Breaking down the information by continent
+
+select location, Max(total_deaths) as death_count
+from "CovidDeaths.csv" cdc 
+where continent ='' 
+and location != 'Upper middle income' 
+and location != 'High income' 
+and location != 'Lower middle income' 
+and location !='Low income'
+group by location
+order by death_count desc
+
+-- global numbers
+select date, sum(new_cases) as total_new_cases, sum(new_deaths) as total_new_deaths, sum(new_deaths)/nullif(sum(new_cases),0)*100 as death_percentage
+from "CovidDeaths.csv" cdc 
+where continent ='' 
+and location != 'Upper middle income' 
+and location != 'High income' 
+and location != 'Lower middle income' 
+and location !='Low income'
+group by date
+order by 1,2
+
+-- Global Cases and deaths so far
+select sum(new_cases) as total_new_cases, sum(new_deaths) as total_new_deaths, sum(new_deaths)/nullif(sum(new_cases),0)*100 as death_percentage
+from "CovidDeaths.csv" cdc 
+where continent ='' 
+and location != 'Upper middle income' 
+and location != 'High income' 
+and location != 'Lower middle income' 
+and location !='Low income'
+order by 1,2
+
+-- Vacinations file
+select * from covidvacinations_csv cc 
+
+ALTER table covidvacinations_csv 
+ALTER COLUMN "date" TYPE date USING "date"::date;
+
+
+-- Join table
+select *
+from "CovidDeaths.csv" cdc 
+join covidvacinations_csv cc 
+on cdc.location = cc.location
+and cdc.date = cc.date
