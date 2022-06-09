@@ -85,15 +85,85 @@ and location !='Low income'
 order by 1,2
 
 -- Vacinations file
-select * from covidvacinations_csv cc 
+select * from covidvaccinations_csv cc 
 
-ALTER table covidvacinations_csv 
+ALTER table covidvaccinations_csv  
 ALTER COLUMN "date" TYPE date USING "date"::date;
 
 
 -- Join table
 select *
-from "CovidDeaths.csv" cdc 
-join covidvacinations_csv cc 
-on cdc.location = cc.location
-and cdc.date = cc.date
+from coviddeaths_csv cc2
+join covidvaccinations_csv cc 
+	on cc2.location = cc.location
+	and cc2.date = cc.date
+where cc2.location = 'Portugal'
+
+
+-- total population vs vacination
+--
+--we are partition this by location because we want for the rolling to stop when it gets to another country/location 
+
+select dea.continent, dea.location, dea.population, dea.date, vac.new_vaccinations,
+	sum(
+		cast(
+			case
+				when coalesce (vac.new_vaccinations, '') = '' then '0'
+				when vac.new_vaccinations is null then '0'
+				else vac.new_vaccinations
+			end
+			as int)) over (partition by dea.location order by dea.location, vac.date) as RollingPeopleVaccinated
+from coviddeaths_csv dea 
+join covidvaccinations_csv vac 
+	on dea.location = vac.location
+	and dea.date = vac.date
+where dea.continent != ''
+
+
+-- Temp Table
+drop table if exists PercentPolulationVaccinated
+
+select dea.continent, dea.location, dea.population, dea.date, vac.new_vaccinations,
+	sum(
+		cast(
+			case
+				when coalesce (vac.new_vaccinations, '') = '' then '0'
+				when vac.new_vaccinations is null then '0'
+				else vac.new_vaccinations
+			end
+			as float)) over (partition by dea.location order by dea.location, dea.date) as RollingPeopleVaccinated
+into temp PercentPolulationVaccinated
+from coviddeaths_csv dea 
+join covidvaccinations_csv vac 
+	on dea.location = vac.location
+	and dea.date = vac.date
+where dea.continent != ''
+
+
+
+select *, (RollingPeopleVaccinated/population)*100 as PercentagePopVacinated
+from PercentPolulationVaccinated
+where location = 'Portugal'
+
+-- I encountered a problem with my vaccianations data. I dropped the table vacinations
+
+drop table covidvacinations_csv 
+
+-- creating a view to store data. 
+
+
+create view worlddeathcount as
+select location, Max(total_deaths) as death_count
+from coviddeaths_csv cc 
+where continent ='' 
+and location != 'Upper middle income' 
+and location != 'High income' 
+and location != 'Lower middle income' 
+and location !='Low income'
+group by location
+order by death_count desc
+
+-- we can now query this view 
+select *
+from public.worlddeathcount 
+
