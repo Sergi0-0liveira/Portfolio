@@ -1,11 +1,10 @@
--- no inicio deste trabalho a BD estava a "ler" o campo "date como YYYY-MM-DD, 
--- isto fazia com que as data ficassem ordenada por Dia e depois mes e ultimo ano. ano; 
--- ou seja primeiro ordenado todos por dia...
--- para resolver, experiment definir o tipo de data da BD com a expressão:
+-- at the beginning of this work the BD was "reading" the "date field as YYYY-MM-DD,
+-- this made the dates sorted by Day and then month and last year. year;
+-- that is, first sorted all per day...
+-- to solve, try setting the DB date type with the expression:
 set datestyle = ISO, DMY;
 
--- Após alterei o 'data type' da coluna Date.
-alter table "CovidDeaths.csv" 
+-- After I changed the 'data type' of the Date columnalter table "CovidDeaths.csv" 
 alter date type date;
 
 select location, date, total_cases, new_cases, total_deaths, population
